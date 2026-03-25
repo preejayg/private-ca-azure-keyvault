@@ -1,6 +1,6 @@
-# Device Identity & PKI Management Project
+# Private Certificate Authority (PKI) with Azure KeyVault
 
-Production-grade Private Certificate Authority (PKI) system for IoT device identity and credential management, built on Azure with HSM-protected cryptographic operations.
+Production-grade Private Certificate Authority (PKI) system for IoT device identity and credential management, built on Azure KeyVault with HSM-protected cryptographic operations.
 
 ## 🎯 Project Overview
 
