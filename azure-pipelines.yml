@@ -1,0 +1,316 @@
+# Azure DevOps Pipeline for POS Device Identity Management
+# Deploys both Infrastructure (Bicep) and Function App code
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - infra/**
+      - function-rootca/**
+      - azure-pipelines.yml
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - infra/**
+      - function-rootca/**
+
+variables:
+  # Azure Configuration
+  azureSubscription: "Azure-ServiceConnection" # Update with your service connection name
+  resourceGroupName: "rg-dev-aue-dcert-poc"
+  location: "australiaeast"
+
+  # Infrastructure Configuration
+  bicepTemplateFile: "infra/bicep/main.bicep"
+  bicepParameterFile: "infra/parameters/dev.bicepparam"
+
+  # Function App Configuration
+  functionAppName: "func-devicepki-dev-001"
+  pythonVersion: "3.11"
+  workingDirectory: "$(System.DefaultWorkingDirectory)/function-rootca"
+
+stages:
+  # Stage 1: Validate Infrastructure
+  - stage: ValidateInfrastructure
+    displayName: "Validate Bicep Templates"
+    jobs:
+      - job: ValidateJob
+        displayName: "Validate Infrastructure Templates"
+        pool:
+          vmImage: "ubuntu-latest"
+
+        steps:
+          - task: AzureCLI@2
+            displayName: "Validate Bicep syntax"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                echo "Validating Bicep templates..."
+                az bicep build --file $(bicepTemplateFile)
+                echo "✅ Bicep syntax validation passed"
+
+          - task: AzureCLI@2
+            displayName: "Run what-if analysis"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                echo "Running what-if analysis..."
+                az deployment group what-if \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(bicepTemplateFile) \
+                  --parameters $(bicepParameterFile)
+
+  # Stage 2: Deploy Infrastructure
+  - stage: DeployInfrastructureDev
+    displayName: "Deploy Infrastructure (Dev)"
+    dependsOn: ValidateInfrastructure
+    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/develop'), eq(variables['Build.SourceBranch'], 'refs/heads/main')))
+    jobs:
+      - deployment: DeployInfraJob
+        displayName: "Deploy Infrastructure to Dev"
+        environment: "Development-Infrastructure"
+        pool:
+          vmImage: "ubuntu-latest"
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: "Ensure Resource Group exists"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Checking resource group..."
+                      az group create \
+                        --name $(resourceGroupName) \
+                        --location $(location) \
+                        --tags Environment=Development Project=DeviceIdentity ManagedBy=AzureDevOps
+                      echo "✅ Resource group ready"
+
+                - task: AzureResourceManagerTemplateDeployment@3
+                  displayName: "Deploy Bicep templates"
+                  inputs:
+                    deploymentScope: "Resource Group"
+                    azureResourceManagerConnection: $(azureSubscription)
+                    subscriptionId: $(AZURE_SUBSCRIPTION_ID)
+                    action: "Create Or Update Resource Group"
+                    resourceGroupName: $(resourceGroupName)
+                    location: $(location)
+                    templateLocation: "Linked artifact"
+                    csmFile: $(bicepTemplateFile)
+                    csmParametersFile: $(bicepParameterFile)
+                    deploymentMode: "Incremental"
+                    deploymentName: "infra-deployment-$(Build.BuildId)"
+
+                - task: AzureCLI@2
+                  displayName: "Verify infrastructure deployment"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Verifying deployed resources..."
+                      az resource list --resource-group $(resourceGroupName) -o table
+
+                      echo "Checking Function App..."
+                      az functionapp show \
+                        --name $(functionAppName) \
+                        --resource-group $(resourceGroupName) \
+                        --query "{name:name, state:state, publicNetworkAccess:publicNetworkAccess}" -o table
+
+                      echo "✅ Infrastructure verification complete"
+
+  # Stage 3: Build Function App Code
+  - stage: BuildFunctionApp
+    displayName: "Build Function App Code"
+    dependsOn: DeployInfrastructureDev
+    jobs:
+      - job: BuildJob
+        displayName: "Build Python Function"
+        pool:
+          vmImage: "ubuntu-latest"
+
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(pythonVersion)"
+            inputs:
+              versionSpec: $(pythonVersion)
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install --target="./.python_packages/lib/site-packages" -r requirements.txt
+            displayName: "Install Python dependencies"
+            workingDirectory: $(workingDirectory)
+
+          - task: ArchiveFiles@2
+            displayName: "Archive function code"
+            inputs:
+              rootFolderOrFile: $(workingDirectory)
+              includeRootFolder: false
+              archiveType: "zip"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip"
+              replaceExistingArchive: true
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish build artifacts"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName: "drop"
+              publishLocation: "Container"
+
+  # Stage 4: Deploy Function Code to Dev
+  - stage: DeployFunctionAppDev
+    displayName: "Deploy Function Code (Dev)"
+    dependsOn: BuildFunctionApp
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DeployDevJob
+        displayName: "Deploy to Dev Environment"
+        environment: "Development"
+        pool:
+          vmImage: "ubuntu-latest"
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  displayName: "Download build artifacts"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "drop"
+                    downloadPath: "$(System.ArtifactsDirectory)"
+
+                - task: AzureFunctionApp@2
+                  displayName: "Deploy Azure Function App"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: "functionAppLinux"
+                    appName: $(functionAppName)
+                    package: "$(System.ArtifactsDirectory)/drop/$(Build.BuildId).zip"
+                    runtimeStack: "PYTHON|3.11"
+                    deploymentMethod: "zipDeploy"
+
+                - task: AzureCLI@2
+                  displayName: "Verify functions deployed"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Listing deployed functions..."
+                      az functionapp function list \
+                        --name $(functionAppName) \
+                        --resource-group $(resourceGroupName) \
+                        --query "[].{Name:name, Enabled:config.disabled}" -o table
+                      echo "✅ Function deployment complete"
+
+  # Stage 5: Deploy Function Code to Prod
+  - stage: DeployFunctionAppProd
+    displayName: "Deploy Function Code (Prod)"
+    dependsOn: BuildFunctionApp
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployDevJob
+        displayName: "Deploy to Dev Environment"
+        environment: "Development"
+        pool:
+          vmImage: "ubuntu-latest"
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  displayName: "Download build artifacts"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "drop"
+                    downloadPath: "$(System.ArtifactsDirectory)"
+
+                - task: AzureFunctionApp@2
+                  displayName: "Deploy Azure Function App"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: "functionAppLinux"
+                    appName: $(functionAppName)
+                    package: "$(System.ArtifactsDirectory)/drop/$(Build.BuildId).zip"
+                    runtimeStack: "PYTHON|3.11"
+                    deploymentMethod: "zipDeploy"
+
+  # Stage 5: Deploy Function Code to Prod
+  - stage: DeployFunctionAppProd
+    displayName: "Deploy Function Code (Prod)"
+    dependsOn: BuildFunctionApp
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployProdJob
+        displayName: "Deploy to Production Environment"
+        environment: "Production" # Requires manual approval in Azure DevOps
+        pool:
+          vmImage: "ubuntu-latest"
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  displayName: "Download build artifacts"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "drop"
+                    downloadPath: "$(System.ArtifactsDirectory)"
+
+                - task: AzureFunctionApp@2
+                  displayName: "Deploy Azure Function App"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: "functionAppLinux"
+                    appName: $(functionAppName)
+                    package: "$(System.ArtifactsDirectory)/drop/$(Build.BuildId).zip"
+                    runtimeStack: "PYTHON|3.11"
+                    deploymentMethod: "zipDeploy"
+
+                - task: AzureCLI@2
+                  displayName: "Verify deployment health"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Getting function key..."
+                      FUNCTION_KEY=$(az functionapp keys list \
+                        --name $(functionAppName) \
+                        --resource-group $(resourceGroupName) \
+                        --query functionKeys.default -o tsv)
+
+                      echo "Testing health endpoint..."
+                      RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+                        -H "x-functions-key: $FUNCTION_KEY" \
+                        https://$(functionAppName).azurewebsites.net/api/health)
+
+                      if [ "$RESPONSE" -eq 200 ]; then
+                        echo "✅ Health check passed"
+                      else
+                        echo "❌ Health check failed: HTTP $RESPONSE"
+                        exit 1
+                      fi

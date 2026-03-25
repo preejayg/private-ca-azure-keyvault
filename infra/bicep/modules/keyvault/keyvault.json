@@ -1,0 +1,170 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "15349332855260147047"
+    }
+  },
+  "parameters": {
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Key Vault"
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "metadata": {
+        "description": "Environment name"
+      }
+    },
+    "objectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID of the user or service principal to grant access"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    },
+    "tenantId": {
+      "type": "string",
+      "defaultValue": "[subscription().tenantId]",
+      "metadata": {
+        "description": "Tenant ID for the Azure Active Directory"
+      }
+    },
+    "publicNetworkAccess": {
+      "type": "string",
+      "defaultValue": "Disabled",
+      "metadata": {
+        "description": "Enable public network access (set to Disabled when using Private Endpoints)"
+      }
+    }
+  },
+  "variables": {
+    "environmentConfig": {
+      "dev": {
+        "sku": "standard",
+        "enablePurgeProtection": false,
+        "networkAclsDefaultAction": "Deny",
+        "softDeleteRetentionInDays": 7
+      },
+      "test": {
+        "sku": "standard",
+        "enablePurgeProtection": false,
+        "networkAclsDefaultAction": "Deny",
+        "softDeleteRetentionInDays": 30
+      },
+      "prod": {
+        "sku": "premium",
+        "enablePurgeProtection": true,
+        "networkAclsDefaultAction": "Deny",
+        "softDeleteRetentionInDays": 90
+      }
+    },
+    "config": "[variables('environmentConfig')[parameters('environment')]]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "[variables('config').sku]"
+        },
+        "tenantId": "[parameters('tenantId')]",
+        "enabledForDeployment": true,
+        "enabledForDiskEncryption": false,
+        "enabledForTemplateDeployment": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": "[variables('config').softDeleteRetentionInDays]",
+        "enablePurgeProtection": "[if(variables('config').enablePurgeProtection, true(), null())]",
+        "enableRbacAuthorization": false,
+        "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+        "accessPolicies": [
+          {
+            "tenantId": "[parameters('tenantId')]",
+            "objectId": "[parameters('objectId')]",
+            "permissions": {
+              "keys": [
+                "get",
+                "list",
+                "create",
+                "delete",
+                "update",
+                "import",
+                "backup",
+                "restore",
+                "recover",
+                "purge"
+              ],
+              "secrets": [
+                "get",
+                "list",
+                "set",
+                "delete",
+                "backup",
+                "restore",
+                "recover",
+                "purge"
+              ],
+              "certificates": [
+                "get",
+                "list",
+                "create",
+                "delete",
+                "update",
+                "import",
+                "managecontacts",
+                "getissuers",
+                "listissuers",
+                "setissuers",
+                "deleteissuers",
+                "manageissuers",
+                "recover",
+                "purge"
+              ]
+            }
+          }
+        ],
+        "networkAcls": {
+          "defaultAction": "[variables('config').networkAclsDefaultAction]",
+          "bypass": "AzureServices",
+          "ipRules": [],
+          "virtualNetworkRules": []
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "keyVaultId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[parameters('keyVaultName')]"
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri]"
+    }
+  }
+}

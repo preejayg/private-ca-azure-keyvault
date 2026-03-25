@@ -1,0 +1,18 @@
+.git*
+.vscode
+__pycache__
+*.pyc
+.python_version
+.venv
+local.settings.json
+test
+.env
+
+# Local testing files (NOT deployed to Azure)
+mock_keyvault.py
+sitecustomize.py
+test-*.sh
+test-*.py
+check-status.sh
+start-local.sh
+*.md

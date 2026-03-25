@@ -1,0 +1,74 @@
+# Azure Functions
+local.settings.json
+*.local.settings.json
+__blobstorage__/
+__queuestorage__/
+__azurite_db*__.json
+
+# Azure
+*.parameters.json
+*.env
+*.local.bicepparam
+
+# Secrets & Certificates
+secrets/
+*.key
+*.pem
+*.pfx
+*.cer
+*.crt
+*.csr
+*.p12
+
+# Deployment artifacts
+*.zip
+*.zip.b64
+deployment-output.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.python_packages/
+*.egg-info/
+dist/
+build/
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Build artifacts
+**/bin/
+**/obj/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
