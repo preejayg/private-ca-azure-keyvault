@@ -9,10 +9,10 @@ param applicationTag = 'DeviceCertificateManagement-POC'
 param costCentreTag = 'ce'
 param managedByTag = 'infrastructure-team'
 
-// Existing VNet Configuration for Private Endpoint
-param existingVNetName = 'vnet-network-dev-aue-001'
-param existingVNetResourceGroup = 'rg-network-dev-aue-001'
-param existingSubnetName = 'snet-privateendpoint'
+// Private Endpoint VNet Configuration
+param existingPrivateEndpointVNetName = 'vnet-network-dev-aue-001'
+param existingPrivateEndpointVNetResourceGroup = 'rg-network-dev-aue-001'
+param existingPrivateEndpointSubnetName = 'snet-privateendpoint'
 param enablePrivateEndpoint = true
 
 // Function App Configuration

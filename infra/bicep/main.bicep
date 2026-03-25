@@ -59,14 +59,14 @@ param costCentreTag string = 'ce'
 @description('Managed By tag value')
 param managedByTag string = 'infrastructure-team'
 
-@description('Existing VNet name for private endpoint')
-param existingVNetName string
+@description('Private endpoint VNet name')
+param existingPrivateEndpointVNetName string
 
-@description('Existing VNet resource group')
-param existingVNetResourceGroup string
+@description('Private endpoint VNet resource group')
+param existingPrivateEndpointVNetResourceGroup string
 
-@description('Existing subnet name for private endpoint')
-param existingSubnetName string
+@description('Private endpoint subnet name')
+param existingPrivateEndpointSubnetName string
 
 @description('Existing subnet name for Function App VNet integration')
 param functionAppSubnetName string
@@ -99,19 +99,19 @@ var naming = {
 }
 
 // Get existing VNet subnet for private endpoint
-resource existingVNet 'Microsoft.Network/virtualNetworks@2023-05-01' existing = {
-  name: existingVNetName
-  scope: resourceGroup(existingVNetResourceGroup)
+resource privateEndpointVNet 'Microsoft.Network/virtualNetworks@2023-05-01' existing = {
+  name: existingPrivateEndpointVNetName
+  scope: resourceGroup(existingPrivateEndpointVNetResourceGroup)
 }
 
-resource existingSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-05-01' existing = {
-  name: existingSubnetName
-  parent: existingVNet
+resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-05-01' existing = {
+  name: existingPrivateEndpointSubnetName
+  parent: privateEndpointVNet
 }
 
 resource functionAppSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-05-01' existing = if (deployFunctionApp) {
   name: functionAppSubnetName
-  parent: existingVNet
+  parent: privateEndpointVNet
 }
 
 // ============================================
@@ -154,7 +154,7 @@ module privateEndpoint 'modules/privateendpoint/privateendpoint.bicep' = if (ena
   params: {
     privateEndpointName: naming.privateEndpoint
     location: location
-    subnetId: existingSubnet.id
+    subnetId: privateEndpointSubnet.id
     privateLinkServiceId: keyVault.outputs.keyVaultId
     groupIds: ['vault']
     tags: commonTags
@@ -179,7 +179,7 @@ module storagePEBlob 'modules/privateendpoint/privateendpoint.bicep' = if (deplo
   params: {
     privateEndpointName: naming.storagePEBlob
     location: location
-    subnetId: existingSubnet.id
+    subnetId: privateEndpointSubnet.id
     privateLinkServiceId: storageAccount!.outputs.storageAccountId
     groupIds: ['blob']
     tags: commonTags
@@ -193,7 +193,7 @@ module storagePEFile 'modules/privateendpoint/privateendpoint.bicep' = if (deplo
   params: {
     privateEndpointName: naming.storagePEFile
     location: location
-    subnetId: existingSubnet.id
+    subnetId: privateEndpointSubnet.id
     privateLinkServiceId: storageAccount!.outputs.storageAccountId
     groupIds: ['file']
     tags: commonTags
@@ -225,7 +225,7 @@ module functionAppPE 'modules/privateendpoint/privateendpoint.bicep' = if (deplo
   params: {
     privateEndpointName: naming.functionAppPE
     location: location
-    subnetId: existingSubnet.id
+    subnetId: privateEndpointSubnet.id
     privateLinkServiceId: functionApp!.outputs.functionAppId
     groupIds: ['sites']
     tags: commonTags

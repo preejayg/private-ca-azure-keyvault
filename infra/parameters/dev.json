@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "dev"
+    },
+    "location": {
+      "value": "australiaeast"
+    },
+    "objectId": {
+      "value": "3bb39574-e7e8-46c3-a2d1-05e4777a8978"
+    },
+    "applicationTag": {
+      "value": "DeviceCertificateManagement-POC"
+    },
+    "costCentreTag": {
+      "value": "ce"
+    },
+    "managedByTag": {
+      "value": "infrastructure-team"
+    },
+    "existingPrivateEndpointVNetName": {
+      "value": "vnet-network-dev-aue-001"
+    },
+    "existingPrivateEndpointVNetResourceGroup": {
+      "value": "rg-network-dev-aue-001"
+    },
+    "existingPrivateEndpointSubnetName": {
+      "value": "snet-privateendpoint"
+    },
+    "enablePrivateEndpoint": {
+      "value": true
+    },
+    "deployFunctionApp": {
+      "value": true
+    },
+    "functionAppSubnetName": {
+      "value": "snet-functionapp-integration"
+    }
+  }
+}
