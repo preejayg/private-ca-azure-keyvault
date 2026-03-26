@@ -4,6 +4,18 @@
 
 This guide covers the complete deployment process for the Azure Functions-based PKI Certificate Authority with private networking.
 
+## Quick Deployment Summary
+
+**3-Phase Deployment:**
+
+1. **Infrastructure** → Deploy via Bicep (`./scripts/deploy-infrastructure.sh`)
+2. **DNS Configuration** → Link private DNS zones (`./scripts/configure-dns-zones.sh`)
+3. **Function Code** → Deploy from VPN or VM (`./scripts/deploy-app-from-*.sh`)
+
+**Estimated Time:** 20-30 minutes for full deployment
+
+---
+
 ## Architecture
 
 - **Function App**: Python 3.11, private networking, VNet integrated
@@ -15,10 +27,38 @@ This guide covers the complete deployment process for the Azure Functions-based 
 
 1. Azure subscription with appropriate permissions
 2. Azure CLI installed and authenticated
-3. Access to a VM in the VNet (for deployment due to private networking)
-4. Network team coordination for:
+3. Python 3.11 for local development
+4. OpenSSL for generating CSRs
+5. Access to a VM in the VNet (for deployment due to private networking) or VPN connection
+6. Network team coordination for:
    - Private DNS zone linking
    - Service endpoint configuration (if subnet managed by account vending)
+
+### Configuration
+
+1. **Get your Azure Object ID:**
+
+   ```bash
+   az ad signed-in-user show --query id -o tsv
+   ```
+
+2. **Update parameter file:**
+   Edit `infra/parameters/dev.bicepparam` and set:
+   - `objectId` (from step 1)
+   - `existingPrivateEndpointVNetName` (e.g., 'vnet-network-dev-aue-001')
+   - `existingPrivateEndpointVNetResourceGroup` (e.g., 'rg-network-dev-aue-001')
+   - `existingPrivateEndpointSubnetName` (e.g., 'snet-privateendpoint')
+   - `functionAppSubnetName` (e.g., 'snet-functionapp-integration')
+
+### Available Deployment Scripts
+
+| Script                     | Purpose                                 | Network Requirement |
+| -------------------------- | --------------------------------------- | ------------------- |
+| `deploy-infrastructure.sh` | Deploy all Azure infrastructure (Bicep) | Local machine       |
+| `configure-dns-zones.sh`   | Configure private DNS zones             | Local machine       |
+| `deploy-app-from-local.sh` | Deploy function code from local machine | VPN + hosts file    |
+| `deploy-app-from-vm.sh`    | Deploy function code via VM             | VM SSH access       |
+| `setup-local-dev.sh`       | Setup local development environment     | Local machine       |
 
 ## Deployment Steps
 
@@ -49,75 +89,92 @@ The following Private DNS zones must be linked to your VNet:
 | `privatelink.file.core.windows.net` | Storage file private endpoint |
 | `privatelink.azurewebsites.net`     | Function App private endpoint |
 
-**Action Required**: Contact your platform team to link these zones.
-
-### 3. Storage Network Access (If Service Endpoint Available)
-
-If your network team can add `Microsoft.Storage` service endpoint to `snet-functionapp-integration`:
+**Option 1 - Automated (Recommended):**
 
 ```bash
-# After service endpoint is added by network team
 cd scripts
-chmod +x configure-storage-network.sh
-./configure-storage-network.sh
+chmod +x configure-dns-zones.sh
+./configure-dns-zones.sh
 ```
 
-**Alternative**: If service endpoints cannot be added due to account vending constraints, storage access will work through private endpoints once DNS is configured (Step 2).
+**Option 2 - Manual:** Contact your platform team to link these zones to your VNet.
 
-### 4. Function Code Deployment (From VM)
+See [PRIVATE_DNS_ZONE_CONFIGURATION.md](PRIVATE_DNS_ZONE_CONFIGURATION.md) for detailed DNS setup instructions.
 
-Since the function app has `publicNetworkAccess='Disabled'`, code must be deployed from a VM in the VNet:
+### 3. Storage Network Access
+
+**Option 1 - Service Endpoint (Better Performance):**
+
+If your network team can add `Microsoft.Storage` service endpoint to `snet-functionapp-integration`, storage access will be faster.
+
+**Option 2 - Private Endpoints Only (Default):**
+
+Storage access works through private endpoints once DNS is configured (Step 2). This is the default configuration and works without additional subnet configuration.
+
+**Note:** The infrastructure deployment (Step 1) configures both approaches. Choose based on your network team's policies.
+
+### 4. Function Code Deployment
+
+Since the function app has `publicNetworkAccess='Disabled'`, code must be deployed from within the VNet.
+
+#### Option A: Deploy from Local Machine (with VPN)
+
+If you have VPN access to the Azure VNet:
+
+**Prerequisites:**
+
+- VPN connection active
+- Hosts file configured: `10.140.34.4  func-devicepki-dev-001.azurewebsites.net`
+
+See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for VPN and hosts file setup.
+
+**Deploy:**
 
 ```bash
-# SSH/Bastion to vm-dev-aue-dcert-poc
-
-# Upload function_app_fixed.zip to VM, then:
-cat > ultimate-simple-deploy.sh << 'ENDOFFILE'
-#!/bin/bash
-FUNCTION_APP_NAME="func-devicepki-dev-001"
-RESOURCE_GROUP="rg-dev-aue-dcert-poc"
-
-# Extract zip
-unzip -o function_app_fixed.zip -d extracted/
-
-# Get Kudu credentials
-CREDS=$(az functionapp deployment list-publishing-credentials \
-    --name $FUNCTION_APP_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --query "{username:publishingUserName,password:publishingPassword}" \
-    -o json)
-
-USERNAME=$(echo $CREDS | jq -r '.username')
-PASSWORD=$(echo $CREDS | jq -r '.password')
-KUDU_URL="https://$FUNCTION_APP_NAME.scm.azurewebsites.net"
-
-# Upload files via VFS API
-curl -u "$USERNAME:$PASSWORD" -X PUT --data-binary @extracted/function_app.py \
-    "$KUDU_URL/api/vfs/site/wwwroot/function_app.py"
-
-curl -u "$USERNAME:$PASSWORD" -X PUT --data-binary @extracted/requirements.txt \
-    "$KUDU_URL/api/vfs/site/wwwroot/requirements.txt"
-
-curl -u "$USERNAME:$PASSWORD" -X PUT --data-binary @extracted/host.json \
-    "$KUDU_URL/api/vfs/site/wwwroot/host.json"
-
-# SSH in and install packages
-az webapp ssh --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP << 'SSHEOF'
-cd /home/site/wwwroot
-python3 -m pip install --target .python_packages/lib/site-packages \
-    azure-functions azure-identity \
-    azure-keyvault-certificates azure-keyvault-keys azure-keyvault-secrets \
-    cryptography werkzeug
-exit
-SSHEOF
-
-# Restart
-az functionapp restart --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP
-ENDOFFILE
-
-chmod +x ultimate-simple-deploy.sh
-./ultimate-simple-deploy.sh
+cd scripts
+chmod +x deploy-app-from-local.sh
+./deploy-app-from-local.sh
 ```
+
+The script will:
+
+1. Build platform-specific Python packages (Linux x86_64)
+2. Package function code with dependencies
+3. Deploy via Azure CLI using config-zip
+4. Verify deployment
+
+#### Option B: Deploy from VM (Recommended for Production)
+
+Deploy from a VM inside the VNet (no VPN required):
+
+```bash
+cd scripts
+chmod +x deploy-app-from-vm.sh
+./deploy-app-from-vm.sh
+```
+
+The script will:
+
+1. Build platform-specific Python packages locally
+2. Package function code with dependencies
+3. SCP package to VM (10.140.34.6)
+4. SSH to VM and deploy using Azure CLI
+5. Verify deployment
+
+**Prerequisites:**
+
+- SSH key at `~/.ssh/vm-dev-aue-dcert-poc-keypair.pem`
+- VM accessible at 10.140.34.6
+
+#### Option C: Azure DevOps Pipeline (Automated CI/CD)
+
+For automated deployments, use the provided Azure DevOps pipeline:
+
+```bash
+# The pipeline is defined in azure-pipelines.yml
+```
+
+See [azure-devops-setup.md](azure-devops-setup.md) for pipeline configuration.
 
 ### 5. Verify Deployment
 
@@ -230,11 +287,22 @@ Bicep deployment is idempotent - safe to re-run.
 
 ### Redeploying Function Code
 
-From the VM:
+**From Local (with VPN):**
 
 ```bash
-./ultimate-simple-deploy.sh
+cd scripts
+./deploy-app-from-local.sh
 ```
+
+**From VM:**
+
+```bash
+cd scripts
+./deploy-app-from-vm.sh
+```
+
+**Via Azure DevOps:**
+Commit changes to `main` or `develop` branch - pipeline will auto-deploy.
 
 ### Viewing Logs
 
@@ -247,20 +315,45 @@ az webapp log tail --name func-devicepki-dev-001 --resource-group rg-dev-aue-dce
 | Endpoint                      | Method | Description                                   |
 | ----------------------------- | ------ | --------------------------------------------- |
 | `/api/health`                 | GET    | Health status                                 |
-| `/api/create_root_ca`         | POST   | Create root CA certificate                    |
-| `/api/get_root_ca`            | GET    | Retrieve root CA certificate                  |
-| `/api/create_intermediate_ca` | POST   | Create intermediate CA                        |
-| `/api/get_intermediate_ca`    | GET    | Retrieve intermediate CA                      |
-| `/api/issue_certificate`      | POST   | Issue end-entity certificate from CSR         |
-| `/api/renew_certificate`      | POST   | Renew existing certificate                    |
-| `/api/revoke_certificate`     | POST   | Revoke certificate with X.509 reason          |
-| `/api/check_revocation`       | GET    | Check if certificate is revoked               |
-| `/api/list_certificates`      | GET    | List certificates with pagination             |
-| `/api/get_crl`                | GET    | Get Certificate Revocation List (DER-encoded) |
+| `/api/create-root-ca`         | POST   | Create root CA certificate                    |
+| `/api/get-root-ca`            | GET    | Retrieve root CA certificate                  |
+| `/api/create-intermediate-ca` | POST   | Create intermediate CA                        |
+| `/api/get-intermediate-ca`    | GET    | Retrieve intermediate CA                      |
+| `/api/get-certificate`        | GET    | Get specific certificate                      |
+| `/api/issue-certificate`      | POST   | Issue end-entity certificate from CSR         |
+| `/api/renew-certificate`      | POST   | Renew existing certificate                    |
+| `/api/revoke-certificate`     | POST   | Revoke certificate with X.509 reason          |
+| `/api/check-revocation`       | GET    | Check if certificate is revoked               |
+| `/api/list-certificates`      | GET    | List certificates with pagination             |
+| `/api/crl/{ca_name}`          | GET    | Get Certificate Revocation List (DER-encoded) |
 
-**Note:** Endpoint names use underscores (`_`) in the actual function code, but may use hyphens (`-`) in route configuration.
+**Note:** All endpoints use hyphens (`-`) in route configuration.
 
-For detailed API documentation, see [API_REFERENCE.md](API_REFERENCE.md).
+For detailed API documentation with request/response examples, see [API_REFERENCE.md](API_REFERENCE.md).
+
+## Testing
+
+Comprehensive test scripts are available in `function-private-ca/test/` directory.
+
+**Quick Test (from VM):**
+
+```bash
+cd function-private-ca/test
+./create-root-ca.sh
+./create-intermediate-ca.sh
+./issue-certificate.sh device-001-cert
+./list-certificates.sh
+```
+
+**Local Development Testing:**
+
+```bash
+cd function-private-ca
+func start
+./test/test-local.sh
+```
+
+For comprehensive testing procedures, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
 
 ## Support
 
