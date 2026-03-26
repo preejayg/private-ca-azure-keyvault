@@ -34,50 +34,8 @@ See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for API documentation and [do
 - [Bicep](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/install) (included with Azure CLI 2.20.0+)
 - [VS Code](https://code.visualstudio.com/) with Bicep extension
 - Azure subscription
-- **Azure DevOps** (for automated CI/CD deployment)
 
-### Infrastructure Deployment (Bicep IaC)
-
-The project uses **Infrastructure as Code** with Bicep templates.
-
-1. **Get your Azure Object ID:**
-
-   ```bash
-   az ad signed-in-user show --query id -o tsv
-   ```
-
-2. **Update the parameter file:**
-
-   Edit `infra/parameters/dev.bicepparam` and set your `objectId`
-
-3. **Deploy using the automated script:**
-
-   ```bash
-   ./scripts/deploy-keyvault.sh
-   ```
-
-   Or manually:
-
-   ```bash
-   # Create resource group
-   az group create --name rg-dev-aue-dcert-poc --location australiaeast
-
-   # Deploy infrastructure
-   az deployment group create \
-     --resource-group rg-dev-aue-dcert-poc \
-     --template-file ./infra/bicep/main.bicep \
-     --parameters ./infra/parameters/dev.bicepparam
-   ```
-
-4. **Configure DNS for private endpoint:**
-
-   Follow the instructions displayed after deployment to add the private IP to your hosts file.
-
-📖 **Detailed documentation**: See [docs/BICEP_MIGRATION.md](docs/BICEP_MIGRATION.md) for complete migration guide and [docs/CONVERSION_SUMMARY.md](docs/CONVERSION_SUMMARY.md) for quick reference.
-
-### Legacy Script (Deprecated)
-
-The original `setup-keyvault.sh` script is now **deprecated** in favor of the Bicep IaC approach. Use `./scripts/deploy-keyvault.sh` instead.
+📖 **Detailed documentation**: See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide and [docs/PRIVATE_DNS_ZONE_CONFIGURATION.md](docs/PRIVATE_DNS_ZONE_CONFIGURATION.md) for DNS setup.
 
 ### Setup
 
@@ -85,7 +43,7 @@ The original `setup-keyvault.sh` script is now **deprecated** in favor of the Bi
 
 ```bash
    git clone <your-repo>
-   cd pos-device-identity
+   cd private-ca-azure-keyvault
    code .
 ```
 
@@ -110,25 +68,27 @@ The original `setup-keyvault.sh` script is now **deprecated** in favor of the Bi
 ## 📁 Project Structure
 
 ```
-pos-device-identity/
+private-ca-azure-keyvault/
 ├── docs/                   # Documentation
 │   ├── architecture.md            # System architecture
 │   ├── azure-devops-setup.md      # Azure DevOps CI/CD setup guide
-│   └── BICEP_MIGRATION.md         # Bicep migration documentation
+│   └── DEPLOYMENT.md              # Deployment guide
 ├── infra/                  # Infrastructure as Code
 │   ├── bicep/              # Bicep templates
 │   │   ├── main.bicep             # Main orchestration
 │   │   └── modules/               # Reusable modules (keyvault, storage, functionapp, etc.)
 │   └── parameters/         # Environment parameters
-├── scripts/                # Manual deployment scripts (optional)
-│   ├── deploy-keyvault.sh         # Deploy Key Vault infrastructure
-│   ├── deploy-functionapp.sh      # Deploy Function App infrastructure
+├── scripts/                # Deployment scripts
+│   ├── deploy-infrastructure.sh   # Deploy complete infrastructure (Key Vault, Storage, Function App)
+│   ├── configure-dns-zones.sh     # Configure private DNS zones
+│   ├── deploy-app-from-local.sh   # Deploy function code from local (VPN required)
+│   ├── deploy-app-from-vm.sh      # Deploy function code from VM
 │   └── setup-local-dev.sh         # Local development setup
-├── function-rootca/        # Root CA management function
+├── function-private-ca/    # Private CA management function
 │   ├── function_app.py            # Azure Function implementation
 │   ├── mock_keyvault.py           # Mock Key Vault for local testing
 │   ├── requirements.txt           # Python dependencies
-│   └── test-local.sh              # Local testing script
+│   └── test/                      # Test scripts
 └── azure-pipelines.yml     # Azure DevOps CI/CD pipeline
 ```
 
@@ -136,63 +96,93 @@ pos-device-identity/
 
 ### 1. Deploy Infrastructure
 
-Deploy Key Vault and Function App infrastructure using Bicep:
+Deploy infrastructure using Bicep:
 
 ```bash
-# Deploy Key Vault only
-./scripts/deploy-keyvault.sh
-
-# Deploy Function App infrastructure (includes storage, networking, VNet integration)
-./scripts/deploy-functionapp.sh
+# Deploy complete infrastructure (Key Vault, Storage, Function App)
+./scripts/deploy-infrastructure.sh
 ```
+
+Configure DNS for private endpoints:
+
+```bash
+./scripts/configure-dns-zones.sh
+```
+
+Or coordinate with platform team to link private DNS zones to your VNet.
 
 ### 2. Deploy Function Code
 
-**⚠️ Important: Function App has `publicNetworkAccess: Disabled` due to corporate policy.**
+**⚠️ Important: Function App has `publicNetworkAccess: Disabled` - deployment requires network access.**
 
-You **cannot** deploy from your local machine. Use one of these methods:
+Choose one of these deployment methods:
 
-#### Option A: Azure Portal Upload (Recommended for Quick Deploy)
+#### Option A: Deploy from Local Machine (with VPN)
+
+Requires VPN connection to Azure VNet and hosts file configuration:
 
 ```bash
-# 1. Create deployment package
-./scripts/create-deployment-package.sh
-
-# 2. Upload via Azure Portal:
-#    - Go to https://portal.azure.com
-#    - Navigate to func-devicepki-dev-001
-#    - Click "Deployment Center" → "Upload" tab
-#    - Upload function-rootca.zip
+# Deploy from local machine (requires VPN + hosts file setup)
+./scripts/deploy-app-from-local.sh
 ```
 
-#### Option B: Azure DevOps Pipeline (Recommended for Production)
+**Prerequisites:**
+
+- VPN connection to Azure VNet
+- Hosts file entry: `10.140.34.4  func-devicepki-dev-001.azurewebsites.net`
+
+See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for VPN and hosts file setup.
+
+#### Option B: Deploy from VM (Recommended)
+
+Deploy via VM inside the VNet (no VPN required):
+
+```bash
+# Deploy from VM (recommended for production)
+./scripts/deploy-app-from-vm.sh
+```
+
+#### Option C: Azure DevOps Pipeline (Automated CI/CD)
 
 Set up automated deployment using the provided `azure-pipelines.yml`:
 
 - Deploys automatically on code changes
 - Runs from Azure-hosted agents with network access
 - Supports approval gates for production
-- See [docs/deploy-from-cloudshell.md](docs/deploy-from-cloudshell.md) for setup
+- See [docs/azure-devops-setup.md](docs/azure-devops-setup.md) for setup
 
-📖 **See detailed instructions**: [docs/deploy-from-cloudshell.md](docs/deploy-from-cloudshell.md)
+📖 **See detailed instructions**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ### 3. Test Function App
 
-Test the deployed functions (also requires Cloud Shell or Azure network access):
+Comprehensive test scripts are available in `function-private-ca/test/` directory.
+
+**Production Testing** (requires VPN or VM access):
 
 ```bash
-# From Azure Cloud Shell
-./scripts/test-functioncode.sh
+# Complete PKI workflow test
+cd function-private-ca/test
+
+# From local machine with VPN
+./create-root-ca-local.sh
+./create-intermediate-ca-local.sh
+./issue-certificate-local.sh device-001-cert
+
+# OR from VM
+./create-root-ca.sh
+./create-intermediate-ca.sh
+./issue-certificate.sh device-001-cert
 ```
 
-### Local Development
-
-Test functions locally with mock Key Vault (no Azure connectivity required):
+**Local Development Testing** (no Azure connectivity required):
 
 ```bash
-cd function-rootca
-./test-local.sh
+cd function-private-ca
+func start
+./test/test-local.sh
 ```
+
+📖 **See full testing guide**: [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
 
 ## �🔐 Phase 1: Key Vault
 
@@ -214,20 +204,17 @@ The Key Vault stores:
 
 ## 🧪 Testing Your Deployment
 
-```bash
-# List deployed resources
-az resource list --resource-group rg-device-identity-dev --output table
-
-# Test Key Vault access
-KV_NAME=$(az keyvault list --resource-group rg-device-identity-dev --query '[0].name' -o tsv)
-az keyvault secret set --vault-name $KV_NAME --name test-secret --value "Hello Device Identity"
-az keyvault secret show --vault-name $KV_NAME --name test-secret
-```
+📖 **See comprehensive testing guide**: [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
 
 ## 📚 Documentation
 
 - [Architecture Overview](docs/architecture.md)
-- [Implementation Phases](docs/phases.md)
+- [API Reference](docs/API_REFERENCE.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Testing Guide](docs/TESTING_GUIDE.md)
+- [Azure DevOps Setup](docs/azure-devops-setup.md)
+- [Private DNS Configuration](docs/PRIVATE_DNS_ZONE_CONFIGURATION.md)
+- [Local Development](docs/LOCAL_DEVELOPMENT.md)
 
 ## 🛠️ Common Commands
 
@@ -237,12 +224,10 @@ az bicep build --file infra/bicep/main.bicep
 
 # Preview deployment changes
 az deployment group what-if \
-  --resource-group rg-device-identity-dev \
+  --resource-group rg-dev-aue-dcert-poc \
   --template-file infra/bicep/main.bicep \
   --parameters infra/parameters/dev.bicepparam
 
-# Delete resources
-az group delete --name rg-device-identity-dev --yes
 ```
 
 ## 🤝 Contributing

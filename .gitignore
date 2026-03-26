@@ -9,6 +9,7 @@ __azurite_db*__.json
 *.parameters.json
 *.env
 *.local.bicepparam
+dev.bicepparam
 
 # Secrets & Certificates
 secrets/
