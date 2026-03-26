@@ -12,6 +12,47 @@
 
 ---
 
+## Quick Setup
+
+### 1. Configure Test Environment
+
+Before running test scripts, set up your configuration:
+
+```bash
+cd function-private-ca/test
+
+# Copy configuration template
+cp config.sh.example config.sh
+
+# Edit config.sh with your actual IPs
+nano config.sh
+```
+
+Set these values in `config.sh`:
+
+- `FUNCTION_APP_PRIVATE_IP` - Your Function App's private endpoint IP
+- `VM_IP` - Your test VM's IP address
+- `SSH_KEY` - Path to your SSH key
+
+**Find your IPs:**
+
+```bash
+# Function App Private IP
+az network private-endpoint show \
+  --name pe-dev-aue-functionapp-dcert-poc \
+  --resource-group rg-dev-aue-dcert-poc \
+  --query 'customDnsConfigs[0].ipAddresses[0]' -o tsv
+
+# VM IP
+az vm show -d --name vm-dev-aue-dcert-poc \
+  --resource-group rg-dev-aue-dcert-poc \
+  --query privateIps -o tsv
+```
+
+See [function-private-ca/test/README.md](../function-private-ca/test/README.md) for detailed configuration instructions.
+
+---
+
 ## Architecture Summary
 
 - **Function App**: `func-devicepki-dev-001` (private endpoints only, no public access)

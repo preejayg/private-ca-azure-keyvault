@@ -5,15 +5,14 @@
 
 set -e
 
-# Configuration
-RESOURCE_GROUP="rg-dev-aue-dcert-poc"
-FUNCTION_APP="func-devicepki-dev-001"
-VM_IP="<YOUR_VM_IP>"  # Replace with your VM IP
-VM_USER="azureuser"
-SSH_KEY="$HOME/.ssh/vm-dev-aue-dcert-poc-keypair.pem"
+# Source common configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+check_vm_config
 
 # Default CA name
 CA_NAME="${1:-device-intermediate-ca}"
+VM_USER="azureuser"
 
 echo "========================================="
 echo "Retrieve Intermediate CA Certificate"

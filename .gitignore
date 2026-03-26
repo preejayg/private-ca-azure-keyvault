@@ -12,6 +12,10 @@ __azurite_db*__.json
 dev.bicepparam
 dev.json
 
+# Local configuration
+config.sh
+.env.local
+
 # Secrets & Certificates
 secrets/
 *.key

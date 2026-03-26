@@ -1,3 +1,9 @@
 #!/bin/bash
-MASTER_KEY=$(az functionapp keys list --name func-devicepki-dev-001 --resource-group rg-dev-aue-dcert-poc --query "masterKey" -o tsv)
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem -o LogLevel=ERROR azureuser@<YOUR_VM_IP> "curl -s 'https://func-devicepki-dev-001.azurewebsites.net/api/list-certificates?type=all' -H 'x-functions-key: $MASTER_KEY'"
+
+# Source common configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+check_vm_config
+
+MASTER_KEY=$(az functionapp keys list --name "$FUNCTION_APP" --resource-group "$RESOURCE_GROUP" --query "masterKey" -o tsv)
+ssh -i "$SSH_KEY" -o LogLevel=ERROR azureuser@"$VM_IP" "curl -s 'https://${FUNCTION_APP}.azurewebsites.net/api/list-certificates?type=all' -H 'x-functions-key: $MASTER_KEY'"

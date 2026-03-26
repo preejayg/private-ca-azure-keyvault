@@ -7,12 +7,16 @@
 # - VPN connection to Azure virtual network  
 # - Hosts file entry: <FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net
 # - Azure CLI logged in
+# - Configuration: Run 'cp config.sh.example config.sh' and set FUNCTION_APP_PRIVATE_IP
 
 set -e
 
+# Source common configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+check_local_config
+
 # Configuration
-RESOURCE_GROUP="rg-dev-aue-dcert-poc"
-FUNCTION_APP="func-devicepki-dev-001"
 FUNCTION_HOST="${FUNCTION_APP}.azurewebsites.net"
 
 # Parameters

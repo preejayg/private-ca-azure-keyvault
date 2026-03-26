@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Configuration template for test scripts
+# Copy this file to config.sh and update with your actual values:
+# cp config.sh.example config.sh
+
+# Function App Private Endpoint IP (find via: az network private-endpoint show ...)
+export FUNCTION_APP_PRIVATE_IP="10.x.x.x"
+
+# VM IP for deployment and testing
+export VM_IP="10.x.x.x"
+
+# SSH Key path
+export SSH_KEY="$HOME/.ssh/vm-dev-aue-dcert-poc-keypair.pem"
+
+# Function App details
+export FUNCTION_APP="func-devicepki-dev-001"
+export RESOURCE_GROUP="rg-dev-aue-dcert-poc"
+
+# Azure subscription (optional, uses current subscription if not set)
+# export AZURE_SUBSCRIPTION_ID="your-subscription-id"

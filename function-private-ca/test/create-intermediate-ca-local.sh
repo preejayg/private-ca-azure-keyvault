@@ -11,9 +11,11 @@
 
 set -e
 
-# Configuration
-RESOURCE_GROUP="rg-dev-aue-dcert-poc"
-FUNCTION_APP="func-devicepki-dev-001"
+# Source common configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+check_local_config
+
 FUNCTION_HOST="${FUNCTION_APP}.azurewebsites.net"
 
 # CA configuration

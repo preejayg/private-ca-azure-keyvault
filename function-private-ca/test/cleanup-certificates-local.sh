@@ -15,9 +15,10 @@
 
 set -e
 
-# Configuration
-RESOURCE_GROUP="rg-dev-aue-dcert-poc"
-KEY_VAULT="kv-dev-aue-dcert-poc-001"
+# Source common configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+check_local_config
 
 echo "========================================="
 echo "Certificate Cleanup (Local)"
