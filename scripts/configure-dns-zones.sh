@@ -6,7 +6,7 @@
 set -e
 
 RESOURCE_GROUP="rg-dev-aue-dcert-poc"
-SHARED_SERVICES_SUB="4380eccb-0385-4b7e-a912-46b0170bdd44"
+SHARED_SERVICES_SUB="<YOUR_SHARED_SERVICES_SUBSCRIPTION_ID>"  # Replace with your shared services subscription ID
 DNS_ZONE_RG="rg-privatedns-sharedsvcs-aue-001"
 
 echo "========================================="

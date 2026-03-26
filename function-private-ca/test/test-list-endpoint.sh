@@ -9,7 +9,7 @@ echo ""
 
 # Call API via SSH 
 echo "Calling list-certificates API..."
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem -o LogLevel=ERROR azureuser@10.140.34.6 \
+ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem -o LogLevel=ERROR azureuser@<YOUR_VM_IP> \
   "curl -s 'https://func-devicepki-dev-001.azurewebsites.net/api/list-certificates?type=all' \
     -H 'x-functions-key: $MASTER_KEY'" > /tmp/api-output.txt 2>&1
 

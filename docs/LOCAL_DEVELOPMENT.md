@@ -12,7 +12,7 @@ Connect to the Azure virtual network where the Function App private endpoint res
 
 ```bash
 # Verify you can reach the private subnet
-ping 10.140.34.4
+ping <FUNCTION_APP_PRIVATE_IP>
 
 # Should show private IP (10.x.x.x range)
 dig +short func-devicepki-dev-001.azurewebsites.net
@@ -29,11 +29,11 @@ Add the Function App hostname to your hosts file to resolve to the private endpo
 sudo nano /etc/hosts
 
 # Add this line:
-10.140.34.4  func-devicepki-dev-001.azurewebsites.net
+<FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net
 
 # Save and verify
 ping func-devicepki-dev-001.azurewebsites.net
-# Should respond from 10.140.34.4
+# Should respond from <FUNCTION_APP_PRIVATE_IP>
 ```
 
 **Windows:**
@@ -43,7 +43,7 @@ ping func-devicepki-dev-001.azurewebsites.net
 notepad C:\Windows\System32\drivers\etc\hosts
 
 # Add this line:
-10.140.34.4  func-devicepki-dev-001.azurewebsites.net
+<FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net
 
 # Save and verify
 ping func-devicepki-dev-001.azurewebsites.net
@@ -194,11 +194,11 @@ cd function-private-ca/test
 
 ```bash
 # Test VPN connectivity
-ping 10.140.34.4
+ping <FUNCTION_APP_PRIVATE_IP>
 
 # Test hostname resolution
 dig +short func-devicepki-dev-001.azurewebsites.net
-# Should return: 10.140.34.4
+# Should return: <FUNCTION_APP_PRIVATE_IP>
 
 # Test HTTPS connectivity
 curl -s -o /dev/null -w "%{http_code}" https://func-devicepki-dev-001.azurewebsites.net/api/health
@@ -213,8 +213,8 @@ curl -s -o /dev/null -w "%{http_code}" https://func-devicepki-dev-001.azurewebsi
 # Check what IP hostname resolves to
 dig +short func-devicepki-dev-001.azurewebsites.net
 
-# If it's not 10.140.34.4, add hosts file entry:
-echo "10.140.34.4  func-devicepki-dev-001.azurewebsites.net" | sudo tee -a /etc/hosts
+# If it's not the private IP, add hosts file entry:
+echo "<FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net" | sudo tee -a /etc/hosts
 ```
 
 ### Issue: "Failed to retrieve master key"

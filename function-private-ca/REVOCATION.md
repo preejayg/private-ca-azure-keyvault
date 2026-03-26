@@ -325,10 +325,10 @@ zip -r function-app-with-deps.zip \
 # Transfer to VM (required for private endpoints)
 scp -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem \
   function-app-with-deps.zip \
-  azureuser@10.140.34.6:~/
+  azureuser@<YOUR_VM_IP>:~/
 
 # Deploy via Azure CLI
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@10.140.34.6 \
+ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@<YOUR_VM_IP> \
   "az functionapp deployment source config-zip \
     -g rg-dev-aue-dcert-poc \
     -n func-devicepki-dev-001 \

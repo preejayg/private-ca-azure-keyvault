@@ -42,7 +42,7 @@ If you prefer automation or Portal is slow:
 ```bash
 #!/bin/bash
 
-SUBSCRIPTION_ID="a5fb8265-f881-447f-95bb-d174e99b217a"
+SUBSCRIPTION_ID="<YOUR_SUBSCRIPTION_ID>"  # Replace with your subscription ID
 VNET_NAME="vnet-network-dev-aue-001"
 VNET_RG="rg-network-dev-aue-001"
 

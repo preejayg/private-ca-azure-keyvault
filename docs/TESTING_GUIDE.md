@@ -16,7 +16,7 @@
 
 - **Function App**: `func-devicepki-dev-001` (private endpoints only, no public access)
 - **Key Vault**: `kv-dev-aue-dcert-poc-001` (private endpoints, RBAC-enabled)
-- **Test VM**: `10.140.34.6` (inside VNet, SSH key: `~/.ssh/vm-dev-aue-dcert-poc-keypair.pem`)
+- **Test VM**: `<YOUR_VM_IP>` (inside VNet, SSH key: `~/.ssh/vm-dev-aue-dcert-poc-keypair.pem`)
 
 ### All API Endpoints
 
@@ -102,7 +102,7 @@ All function endpoints are behind private networking. Test via the VM:
 ### 1. SSH to VM
 
 ```bash
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@10.140.34.6
+ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@<YOUR_VM_IP>
 ```
 
 ### 2. Get Function Master Key (one-time)

@@ -46,7 +46,7 @@ Production-grade Private Certificate Authority (PKI) system for IoT device ident
         │
 ┌──────────────────────────┐
 │   Test VM (VNet)         │
-│   10.140.34.6            │
+│   <YOUR_VM_IP>            │
 │                          │
 │   • SSH access           │
 │   • Test scripts         │
@@ -136,7 +136,7 @@ signature = crypto_client.sign(SignatureAlgorithm.rs256, digest)
 - Function App managed identity: `Storage Blob Data Owner`
 - Network: VNet service endpoints + firewall rules
 
-### 4. Test VM (10.140.34.6)
+### 4. Test VM (<YOUR_VM_IP>)
 
 **Purpose:** Testing and accessing private endpoints  
 **OS:** Linux (Ubuntu)  
@@ -533,7 +533,7 @@ For testing against deployed Function App with private endpoints:
 
 ```bash
 # SSH to test VM
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@10.140.34.6
+ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@<YOUR_VM_IP>
 
 # Run test scripts
 cd function-private-ca/test

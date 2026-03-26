@@ -124,7 +124,7 @@ If you have VPN access to the Azure VNet:
 **Prerequisites:**
 
 - VPN connection active
-- Hosts file configured: `10.140.34.4  func-devicepki-dev-001.azurewebsites.net`
+- Hosts file configured: `<FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net`
 
 See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for VPN and hosts file setup.
 
@@ -157,14 +157,14 @@ The script will:
 
 1. Build platform-specific Python packages locally
 2. Package function code with dependencies
-3. SCP package to VM (10.140.34.6)
+3. SCP package to VM (<YOUR_VM_IP>)
 4. SSH to VM and deploy using Azure CLI
 5. Verify deployment
 
 **Prerequisites:**
 
 - SSH key at `~/.ssh/vm-dev-aue-dcert-poc-keypair.pem`
-- VM accessible at 10.140.34.6
+- VM accessible at <YOUR_VM_IP>
 
 #### Option C: Azure DevOps Pipeline (Automated CI/CD)
 

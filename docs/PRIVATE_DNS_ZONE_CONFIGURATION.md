@@ -138,7 +138,7 @@ If you have permissions to manage DNS zone groups via CLI, use these commands:
 
 ```bash
 # Set variables
-SUBSCRIPTION_ID="a5fb8265-f881-447f-95bb-d174e99b217a"
+SUBSCRIPTION_ID="<YOUR_SUBSCRIPTION_ID>"  # Replace with your subscription ID
 PE_RG="rg-dev-aue-dcert-poc"
 DNS_RG="rg-network-dev-aue-001"  # Adjust to your DNS zone resource group
 
@@ -240,7 +240,7 @@ Required information to provide:
 - Private DNS zone name (e.g., `privatelink.vaultcore.azure.net`)
 - VNet name: `vnet-network-dev-aue-001`
 - VNet resource group: `rg-network-dev-aue-001`
-- Subscription ID: `a5fb8265-f881-447f-95bb-d174e99b217a`
+- Subscription ID: `<YOUR_SUBSCRIPTION_ID>`
 
 ### Issue: Function App health check fails after deployment
 

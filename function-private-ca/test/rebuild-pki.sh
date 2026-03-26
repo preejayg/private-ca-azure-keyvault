@@ -5,7 +5,7 @@ set -e
 RESOURCE_GROUP="rg-dev-aue-dcert-poc"
 KEY_VAULT="kv-dev-aue-dcert-poc-001"
 FUNCTION_APP="func-devicepki-dev-001"
-VM_IP="10.140.34.6"
+VM_IP="<YOUR_VM_IP>"  # Replace with your VM IP
 SSH_KEY="$HOME/.ssh/vm-dev-aue-dcert-poc-keypair.pem"
 
 echo "=========================================

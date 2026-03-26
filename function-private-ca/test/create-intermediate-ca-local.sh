@@ -5,7 +5,7 @@
 #
 # PREREQUISITES:
 # - VPN connection to Azure virtual network
-# - Hosts file entry: 10.140.34.4  func-devicepki-dev-001.azurewebsites.net
+# - Hosts file entry: <FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net
 # - Azure CLI logged in
 # - Root CA must already exist
 

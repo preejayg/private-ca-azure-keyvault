@@ -249,9 +249,9 @@ zip -r function-app-with-deps.zip \
 
 # Transfer and deploy
 scp -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem \
-  function-app-with-deps.zip azureuser@10.140.34.6:~/
+  function-app-with-deps.zip azureuser@<YOUR_VM_IP>:~/
 
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@10.140.34.6 \
+ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@<YOUR_VM_IP> \
   "az functionapp deployment source config-zip \
     -g rg-dev-aue-dcert-poc \
     -n func-devicepki-dev-001 \
@@ -294,7 +294,7 @@ ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@10.140.34.6 \
 
 ```bash
 # Check health
-ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@10.140.34.6 \
+ssh -i ~/.ssh/vm-dev-aue-dcert-poc-keypair.pem azureuser@<YOUR_VM_IP> \
   "curl -s https://func-devicepki-dev-001.azurewebsites.net/api/health"
 
 # Redeploy if needed (see Deployment Command above)

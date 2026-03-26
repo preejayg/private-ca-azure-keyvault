@@ -17,7 +17,7 @@ set -e
 # Configuration
 RESOURCE_GROUP="rg-dev-aue-dcert-poc"
 FUNCTION_APP="func-devicepki-dev-001"
-VM_IP="10.140.34.6"
+VM_IP="<YOUR_VM_IP>"  # Replace with your VM's private IP
 VM_USER="azureuser"
 SSH_KEY="$HOME/.ssh/vm-dev-aue-dcert-poc-keypair.pem"
 ZIP_FILE="function-app-with-deps.zip"

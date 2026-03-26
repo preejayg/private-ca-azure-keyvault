@@ -10,7 +10,7 @@
 # PREREQUISITES:
 # - VPN connection to Azure virtual network
 # - Hosts file entry pointing function app hostname to private endpoint IP
-#   Example: 10.140.34.4  func-devicepki-dev-001.azurewebsites.net
+#   Example: <FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net
 # - Azure CLI logged in with proper permissions
 #
 # IMPORTANT: This script uses pre-built Python packages because config-zip
@@ -56,7 +56,7 @@ if [[ ! $RESOLVED_IP =~ ^10\. ]]; then
     echo "To deploy from local machine, you need:"
     echo "1. VPN connection to Azure virtual network"
     echo "2. Hosts file entry:"
-    echo "   echo '10.140.34.4  $FUNCTION_HOST' | sudo tee -a /etc/hosts"
+    echo "   echo '<FUNCTION_APP_PRIVATE_IP>  $FUNCTION_HOST' | sudo tee -a /etc/hosts"
     echo ""
     read -p "Continue anyway? (y/N) " -n 1 -r
     echo

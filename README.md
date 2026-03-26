@@ -129,7 +129,7 @@ Requires VPN connection to Azure VNet and hosts file configuration:
 **Prerequisites:**
 
 - VPN connection to Azure VNet
-- Hosts file entry: `10.140.34.4  func-devicepki-dev-001.azurewebsites.net`
+- Hosts file entry: `<FUNCTION_APP_PRIVATE_IP>  func-devicepki-dev-001.azurewebsites.net`
 
 See [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) for VPN and hosts file setup.
 
