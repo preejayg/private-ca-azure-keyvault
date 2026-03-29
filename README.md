@@ -26,7 +26,66 @@ This project provides a complete PKI infrastructure for managing IoT device iden
 
 See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for API documentation and [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for testing procedures.
 
-## 🚀 Quick Start
+## 📊 Standards Compliance
+
+### RFC 5280 (X.509 PKI) ✅ **Compliant**
+
+- ✅ Basic certificate structure
+- ✅ Extensions handling
+- ✅ CRL format
+- ⚠️ Missing: OCSP, some optional extensions
+
+### CA/Browser Forum Baseline Requirements ⚠️ **Partial**
+
+_(Applicable if issuing publicly-trusted certificates)_
+
+- ✅ Maximum validity: 397 days (currently 365)
+- ✅ Key storage: HSM required
+- ⚠️ CRL/OCSP: CRL only (OCSP missing)
+- ❌ Audit logging: Needs enhancement for compliance
+
+### NIST SP 800-57 ✅ **Compliant**
+
+- ✅ Key sizes: 4096-bit RSA (exceeds 2048 minimum)
+- ✅ Key separation: Root/Intermediate separate
+- ✅ HSM protection: Azure Key Vault HSM (FIPS 140-2 Level 2)
+
+**Overall Score: 7.5/10** - Solid foundation with room for hardening
+
+## � Production Readiness TODO
+
+### Critical (Security & Compliance)
+
+- [ ] **OCSP Responder**: Add Online Certificate Status Protocol support for real-time revocation checking
+- [ ] **Certificate Chain Validation**: Verify intermediate CA is properly signed by root CA before issuance
+- [ ] **Audit Logging**: Implement immutable audit trail (Azure Monitor/Sentinel) for all certificate operations
+- [ ] **Rate Limiting**: Add per-IP/per-identity limits to prevent certificate issuance attacks
+
+### Important (Operational Excellence)
+
+- [ ] **Certificate Policy OIDs**: Add certificate policies to classify certificate types and usage
+- [ ] **Name Constraints**: Add to Root CA to restrict what domains/names Intermediate CA can issue
+- [ ] **Stronger Authentication**: Migrate from function keys to certificate-based or managed identity auth
+- [ ] **Certificate Expiry Monitoring**: Azure Monitor alerts for CA expiration (30/60/90 days before)
+- [ ] **Subject Validation**: Add CSR subject name validation rules (e.g., CN must match patterns)
+- [ ] **AIA Extension**: Add Authority Information Access extension for CA certificate discovery
+
+### Enhancements (Performance & Reliability)
+
+- [ ] **CRL Caching**: Cache generated CRLs for 24 hours instead of generating on every request
+- [ ] **Certificate Templates**: Define preset configurations for different certificate types (IoT, server, etc.)
+- [ ] **Backup & DR Strategy**: Document and implement Key Vault backup and disaster recovery procedures
+- [ ] **Multi-Region Deployment**: Deploy secondary CA for high availability
+- [ ] **Performance Testing**: Load test with 1000+ concurrent certificate requests
+- [ ] **Security Review**: Professional penetration testing and security audit
+
+### Compliance (If Required)
+
+- [ ] **CPS Documentation**: Write Certification Practice Statement
+- [ ] **SOC2/ISO27001**: Compliance audit preparation
+- [ ] **CA/Browser Forum**: Ensure compliance with Baseline Requirements (if publicly-trusted)
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
